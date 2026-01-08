@@ -1,11 +1,8 @@
-version: '3.8'
-
 services:
   aemu-servers:
-    build: .
-    container_name: aemu-servers
+    image: ghcr.io/a-blondel/aemu-servers/aemu-servers:latest
+    restart: unless-stopped
     ports:
       - "27312:27312"
       - "27313:27313"
-    restart: unless-stopped
 
