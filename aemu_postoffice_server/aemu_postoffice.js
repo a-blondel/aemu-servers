@@ -67,8 +67,9 @@ let pdp_tick = (ctx) => {
 
 					if (size >= 4096){
 						log(`${ctx.session_name} ${get_sock_addr_str(ctx.socket)} is sending way too big data with size ${size}, ending session`);
-						ctx.socket.end();
+						ctx.socket.destroy();
 						delete sessions[ctx.session_name];
+						return;
 					}
 
 					ctx.target_session_name = `PDP ${get_mac_str(addr)} ${port}`;
@@ -110,11 +111,11 @@ let pdp_tick = (ctx) => {
 }
 
 let close_ptp = (ctx) => {
-	ctx.socket.end();
+	ctx.socket.destroy();
 	delete sessions[ctx.session_name];
 	if (ctx.peer_session != undefined){
 		log(`bringing peer session ${ctx.peer_session.session_name} of ${get_sock_addr_str(ctx.peer_session.socket)} down as well`);
-		ctx.peer_session.socket.end();
+		ctx.peer_session.socket.destroy();
 		delete sessions[ctx.peer_session.session_name];
 	}
 }
@@ -164,6 +165,31 @@ let ptp_tick = (ctx) => {
 	}
 }
 
+let remove_existing_and_insert_session = (ctx, name) => {
+	let existing_session = sessions[name];
+	if (existing_session != undefined){
+		log(`dropping session ${existing_session.session_name} ${get_sock_addr_str(existing_session.socket)} for new session`);
+		switch(existing_session.state){
+			case "pdp":
+			case "ptp_listen":{
+				existing_session.socket.destroy();
+				delete sessions[name];
+				break;
+			}
+			case "ptp_connect":
+			case "ptp_accept":{
+				close_ptp(existing_session);
+				break;
+			}
+			default:
+				log(`bad state ${existing_session.state} in session replacement, debug this`);
+				process.exit(1);
+		}
+	}
+
+	sessions[name] = ctx;
+}
+
 let create_session = (ctx) => {
 	let type = ctx.init_data.slice(0, 4);
 	let src_addr = ctx.init_data.slice(4, 12);
@@ -181,13 +207,16 @@ let create_session = (ctx) => {
 	ctx.dst_addr = dst_addr;
 	ctx.dport = dport;
 
+	delete ctx.init_data;
+
 	switch(type){
 		case AEMU_POSTOFFICE_INIT_PDP:{
 			ctx.state = "pdp";
 			ctx.session_name = `PDP ${get_mac_str(src_addr)} ${sport}`;
 			ctx.pdp_data = ctx.outstanding_data;
+			delete ctx.outstanding_data;
 			ctx.pdp_state = "header";
-			sessions[ctx.session_name] = ctx;
+			remove_existing_and_insert_session(ctx, ctx.session_name);
 			log(`created session ${ctx.session_name} for ${get_sock_addr_str(ctx.socket)}`);
 			pdp_tick(ctx);
 			break;
@@ -195,7 +224,8 @@ let create_session = (ctx) => {
 		case AEMU_POSTOFFICE_INIT_PTP_LISTEN:{
 			ctx.state = "ptp_listen";
 			ctx.session_name = `PTP_LISTEN ${get_mac_str(src_addr)} ${sport}`;
-			sessions[ctx.session_name] = ctx;
+			delete ctx.outstanding_data;
+			remove_existing_and_insert_session(ctx, ctx.session_name);
 			log(`created session ${ctx.session_name} for ${get_sock_addr_str(ctx.socket)}`);
 			break;
 		}
@@ -207,21 +237,23 @@ let create_session = (ctx) => {
 			let listen_session = sessions[listen_session_name];
 			if (listen_session == undefined){
 				log(`not creating ${ctx.session_name} for ${get_sock_addr_str(ctx.socket)}, ${listen_session_name} not found`);
-				ctx.socket.end();
+				ctx.socket.destroy();
 				break;
 			}
 
-			sessions[ctx.session_name] = ctx;
+			remove_existing_and_insert_session(ctx, ctx.session_name);
 			let port = Buffer.alloc(2);
 			port.writeUInt16LE(sport);
 			ctx.ptp_state = "waiting";
 			ctx.ptp_data = ctx.outstanding_data;
+			delete ctx.outstanding_data;
 			listen_session.socket.write(Buffer.concat([src_addr, port]));
 			log(`created session ${ctx.session_name} for ${get_sock_addr_str(ctx.socket)}`);
+
 			setTimeout(() => {
 				if (ctx.ptp_state == "waiting"){
 					log(`the other side did not accept the connection request in 20 seconds, killing ${ctx.session_name} of ${get_sock_addr_str(ctx.socket)}`);
-					ctx.socket.end();
+					ctx.socket.destroy();
 					delete sessions[ctx.session_name];
 				}
 			}, 20000);
@@ -235,16 +267,17 @@ let create_session = (ctx) => {
 			let connect_session = sessions[connect_session_name];
 			if (connect_session == undefined){
 				log(`${connect_session_name} not found, closing ${ctx.session_name} of ${get_sock_addr_str(ctx.socket)}`);
-				ctx.socket.end();
-				delete sessions[ctx.session_name];
+				ctx.socket.destroy();
+				break;
 			}
 
-			sessions[ctx.session_name] = ctx;
+			remove_existing_and_insert_session(ctx, ctx.session_name);
 			ctx.peer_session = connect_session;
 			connect_session.peer_session = ctx;
 			ctx.ptp_state = "header";
 			connect_session.ptp_state = "header";
 			ctx.ptp_data = ctx.outstanding_data;
+			delete ctx.outstanding_data;
 
 			let port = Buffer.alloc(2);
 			port.writeUInt16LE(sport);
@@ -258,7 +291,7 @@ let create_session = (ctx) => {
 		}
 		default:
 			log(`${get_sock_addr_str(ctx.socket)} has bad init type ${type}, dropping connection`);
-			ctx.socket.end();
+			ctx.socket.destroy();
 	}
 }
 
@@ -276,15 +309,12 @@ let on_connection = (socket) => {
 		switch(ctx.state){
 			case "init":
 				log(`${get_sock_addr_str(ctx.socket)} errored during init, ${err}`);
-				ctx.socket.end();
+				ctx.socket.destroy();
 				break;
 			case "pdp":
-				log(`${ctx.session_name} ${get_sock_addr_str(ctx.socket)} errored, ${err}`);
-				ctx.socket.end();
-				break;
 			case "ptp_listen":
 				log(`${ctx.session_name} ${get_sock_addr_str(ctx.socket)} errored, ${err}`);
-				ctx.socket.end();
+				ctx.socket.destroy();
 				break;
 			case "ptp_accept":
 			case "ptp_connect":
@@ -292,7 +322,7 @@ let on_connection = (socket) => {
 				close_ptp(ctx);
 				break;
 			default:
-				log(`bad state ${ctx.state} on end, debug this`);
+				log(`bad state ${ctx.state} on socket error, debug this`);
 				process.exit(1);
 		}
 	})
@@ -301,15 +331,12 @@ let on_connection = (socket) => {
 		switch(ctx.state){
 			case "init":
 				log(`${get_sock_addr_str(ctx.socket)} closed during init`);
-				ctx.socket.end();
+				ctx.socket.destroy();
 				break;
 			case "pdp":
-				log(`${ctx.session_name} ${get_sock_addr_str(ctx.socket)} closed by client`);
-				ctx.socket.end();
-				break;
 			case "ptp_listen":
 				log(`${ctx.session_name} ${get_sock_addr_str(ctx.socket)} closed by client`);
-				ctx.socket.end();
+				ctx.socket.destroy();
 				break;				
 			case "ptp_accept":
 			case "ptp_connect":
@@ -317,7 +344,7 @@ let on_connection = (socket) => {
 				close_ptp(ctx);
 				break;
 			default:
-				log(`bad state ${ctx.state} on end, debug this`);
+				log(`bad state ${ctx.state} on socket end, debug this`);
 				process.exit(1);
 		}
 	})
@@ -357,6 +384,13 @@ let on_connection = (socket) => {
 			}
 		}
 	});
+
+	setTimeout(() => {
+		if (ctx.state == "init"){
+			log(`removing stale connection ${get_sock_addr_str(ctx.socket)}`);
+			ctx.socket.destroy();
+		}
+	}, 20000)
 }
 
 server.on("connection", on_connection);
