@@ -3,6 +3,7 @@ services:
     image: ghcr.io/a-blondel/aemu-servers/aemu-servers:latest
     restart: unless-stopped
     ports:
+      - "8082:8080"
       - "27312:27312"
       - "27313:27313"
-
+      - "27314:27314"
