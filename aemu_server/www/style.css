@@ -1,82 +1,63 @@
-a:link
+span.site
 {
 	color:red;
-	text-decoration:none;
 }
 
-a:visited
-{
-	color:red;
-	text-decoration:none;
-}
-
-a:hover
-{
-	color:red;
-	text-decoration:none;
-}
-
-a:active
-{
-	color:red;
-	text-decoration:none;
-}
-
-a.netlink
+a.setuplink
 {
 	margin-left:10px;
 	margin-right:10px;
 }
 
-a.netlink:link
+a.setuplink:link
 {
 	color:green;
 	text-decoration:none;
 }
 
-a.netlink:visited
+a.setuplink:visited
 {
 	color:green;
 	text-decoration:none;
 }
 
-a.netlink:hover
+a.setuplink:hover
 {
 	color:green;
 	text-decoration:none;
 }
 
-a.netlink:active
+a.setuplink:active
 {
 	color:green;
 	text-decoration:none;
 }
 
-a.donatelink
+a.discordlink
 {
 	margin-left:10px;
 	margin-right:10px;
 }
 
-a.donatelink:link
+a.discordlink:link
 {
 	color:blue;
 	text-decoration:none;
 }
 
-a.donatelink:visited
+a.discordlink:visited
 {
 	color:blue;
 	text-decoration:none;
 }
 
-a.donatelink:hover
+a.discordlink:hover
 {
 	color:blue;
 	text-decoration:none;
 }
 
-a.donatelink:active
+a.discordlink:active
 {
 	color:blue;
 	text-decoration:none;

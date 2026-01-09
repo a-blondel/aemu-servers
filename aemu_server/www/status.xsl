@@ -3,22 +3,20 @@
         <xsl:template match="/">
                 <html>
                         <head>
-                                <title>Prometheus Server Status</title>
+                                <title>EA Hub Prometheus Server Status</title>
                                 <link rel="stylesheet" type="text/css" href="style.css" />
                                 <link rel="icon" href="favicon.ico" type="image/x-icon" />
                                 <meta http-equiv="refresh" content="120" />
                         </head>
                         <body>
                                 <div class="headline">
-                                        <xsl:value-of select="./prometheus/@usercount" /> Users are currently playing on <a href="http://coldbird.net">Prometheus Online</a>!
+                                        <xsl:value-of select="./prometheus/@usercount" /> online on <span class="site">eahub.eu</span> Prometheus ad hoc server
                                 </div>
                                 <div class="navigation">
-                                        <a class="netlink" href="https://discord.gg/CSfwjt6">Discord</a>
-                                        <a class="netlink" href="http://forum.coldbird.net">Community Forum</a>
-                                        <a class="netlink" href="http://code.google.com/p/procfw">Firmware Download</a>
-                                        <a class="netlink" href="http://forum.coldbird.net/viewtopic.php?f=2&amp;t=23">Client Download</a>
-                                        <a class="donatelink" href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&amp;hosted_button_id=RJB74KKZAXS3E">Donate via PayPal</a>
-                                        <a class="donatelink" href="https://patreon.com/coldbird">Donate via Patreon</a>
+                                        <a class="setuplink" href="https://github.com/Kethen/aemu/releases/latest" target="_blank">PSP/Vita Setup</a>
+                                        <a class="setuplink" href="https://github.com/Kethen/ppsspp/releases/latest" target="_blank">PPSSPP Setup</a>
+                                        <a class="discordlink" href="https://discord.gg/fwrQHHxrQQ" target="_blank">EA Hub Discord</a>
+                                        <a class="discordlink" href="https://discord.gg/wxeGVkM" target="_blank">PSP Online Discord</a>
                                 </div>
                                 <xsl:for-each select="./prometheus/game">
                                         <xsl:sort select="./@name"/>
@@ -71,7 +69,7 @@
                                         </div>
                                 </xsl:for-each>
                                 <div class="footer">
-                                        © 2012 Team PRO All Rights Reserved
+                                        © 2012 Team PRO (<a href="https://github.com/MrColdbird" target="_blank">MrColdbird</a>), maintained by <a href="https://github.com/Kethen" target="_blank">Kethen</a> - Hosted by EA Hub (<a href="https://github.com/a-blondel" target="_blank">a-blondel</a>)
                                 </div>
                         </body>
                 </html>
