@@ -36,9 +36,10 @@ EOF
 RUN ln -s /etc/nginx/sites-available/aemu /etc/nginx/sites-enabled/aemu
 
 # Expose ports
+EXPOSE 8080
 EXPOSE 27312
 EXPOSE 27313
-EXPOSE 8080
+EXPOSE 27314
 
 # Startup script to launch both servers (run aemu from its directory so it can find database.db)
 CMD ["/bin/bash", "-c", "nginx && cd /app/aemu_server && ./pspnet_adhocctl_server & node /app/aemu_postoffice_server/aemu_postoffice.js & wait"]

@@ -16,7 +16,7 @@ This project uses the work of [Kethen](https://github.com/Kethen):
 
 ## Usage
 
-### With Docker Compose (recommended)
+### With Docker Compose (using pre-built image)
 
 ```bash
 # Start the servers
@@ -36,7 +36,7 @@ docker-compose down
 docker build -t aemu-servers .
 
 # Run the servers
-docker run -d --rm -it -p 27312:27312 -p 27313:27313 --name aemu-servers aemu-servers:latest
+docker run -d --rm -it -p 8080:8080 -p 27312:27312 -p 27313:27313 -p 27314:27314 --name aemu-servers aemu-servers:latest
 
 # View logs
 docker logs -f aemu-servers
@@ -47,5 +47,11 @@ docker stop aemu-servers
 
 ## Ports
 
+- `8080`: Web status page
 - `27312`: aemu (pspnet_adhocctl_server)
 - `27313`: aemu_postoffice
+- `27314`: aemu_postoffice status endpoint
+
+## Status Page
+
+Access the status page at: [http://localhost:8080/status.xml](http://localhost:8080/status.xml)
