@@ -4,7 +4,6 @@ FROM node:25-trixie-slim
 RUN apt-get update && apt-get install -y \
     libsqlite3-0 \
     libreadline8 \
-    nginx \
     && rm -rf /var/lib/apt/lists/*
 
 # Create working directory
@@ -19,27 +18,11 @@ COPY aemu_postoffice_server/ ./aemu_postoffice_server/
 # Make aemu binary executable
 RUN chmod +x /app/aemu_server/pspnet_adhocctl_server
 
-# Configure nginx to serve www directory
-RUN rm /etc/nginx/sites-enabled/default
-COPY <<EOF /etc/nginx/sites-available/aemu
-server {
-    listen 8080;
-    server_name _;
-    root /app/aemu_server/www;
-    index status.xml;
-    
-    location / {
-        try_files \$uri \$uri/ =404;
-    }
-}
-EOF
-RUN ln -s /etc/nginx/sites-available/aemu /etc/nginx/sites-enabled/aemu
-
 # Expose ports
 EXPOSE 8080
 EXPOSE 27312
 EXPOSE 27313
 EXPOSE 27314
 
-# Startup script to launch both servers (run aemu from its directory so it can find database.db)
-CMD ["/bin/bash", "-c", "nginx && cd /app/aemu_server && ./pspnet_adhocctl_server & node /app/aemu_postoffice_server/aemu_postoffice.js & wait"]
+# Startup script to launch all servers (run aemu from its directory so it can find database.db)
+CMD ["/bin/bash", "-c", "cd /app/aemu_server && ./pspnet_adhocctl_server & cd /app/aemu_postoffice_server && node aemu_postoffice.js & cd /app/aemu_server/www && node server.js & wait"]
