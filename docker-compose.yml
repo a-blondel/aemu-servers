@@ -2,8 +2,35 @@ services:
   aemu-servers:
     image: ghcr.io/a-blondel/aemu-servers/aemu-servers:latest
     restart: unless-stopped
+    networks:
+      - traefik-public
+      - default
+    labels:
+      - "traefik.enable=true"
+      # HTTP router (HTTPS redirection)
+      - "traefik.http.routers.adhoc-http.rule=Host(`adhoc.eahub.eu`)"
+      - "traefik.http.routers.adhoc-http.entrypoints=web"
+      - "traefik.http.routers.adhoc-http.middlewares=adhoc-redirect"
+      # Middleware for redirection
+      - "traefik.http.middlewares.adhoc-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.adhoc-redirect.redirectscheme.permanent=true"
+      # HTTPS router
+      - "traefik.http.routers.adhoc-https.rule=Host(`adhoc.eahub.eu`)"
+      - "traefik.http.routers.adhoc-https.entrypoints=websecure"
+      - "traefik.http.routers.adhoc-https.tls=true"
+      - "traefik.http.routers.adhoc-https.tls.certresolver=letsencrypt"
+      # Service
+      - "traefik.http.services.adhoc-service.loadbalancer.server.port=8080"
+      - "traefik.docker.network=traefik-public"
     ports:
-      - "8080:8080"
-      - "27312:27312"
-      - "27313:27313"
-      - "27314:27314"
+      # Port 8080 now managed by Traefik (HTTPS via adhoc.eahub.eu)
+      # - "8082:8080"
+      - "27312:27312"  # pspnet_adhocctl_server (tunneling Adhoc PSP)
+      - "27313:27313"  # aemu_postoffice (forwarding paquets)
+      # - "27314:27314"  # aemu_postoffice status endpoint
+
+networks:
+  traefik-public:
+    external: true
+  default:
+    driver: bridge
