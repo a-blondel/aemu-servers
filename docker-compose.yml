@@ -1,9 +1,48 @@
 services:
-  aemu-servers:
-    image: ghcr.io/a-blondel/aemu-servers/aemu-servers:latest
+  aemu-server:
+    image: ghcr.io/a-blondel/aemu-servers/aemu-server:latest
     restart: unless-stopped
+    networks:
+      - aemu-net
+    ports:
+      - "27312:27312"
+    volumes:
+      - status-data:/data
+      # Uncomment to replace the default game database:
+      # - ./custom/database.db:/app/database.db
+
+  postoffice:
+    image: ghcr.io/a-blondel/aemu-servers/postoffice:latest
+    restart: unless-stopped
+    networks:
+      - aemu-net
+    ports:
+      - "27313:27313"
+    # Uncomment to replace the default postoffice config:
+    # volumes:
+    #   - ./custom/config.json:/app/config.json
+
+  web:
+    image: ghcr.io/a-blondel/aemu-servers/web:latest
+    restart: unless-stopped
+    networks:
+      - aemu-net
     ports:
       - "8080:8080"
-      - "27312:27312"
-      - "27313:27313"
-      - "27314:27314"
+    environment:
+      - POSTOFFICE_URL=http://postoffice:27314
+    volumes:
+      - status-data:/data:ro
+      # Uncomment to replace default static files with your own:
+      # - ./custom/status.html:/app/www/status.html:ro
+      # - ./custom/style.css:/app/www/style.css:ro
+    depends_on:
+      - aemu-server
+      - postoffice
+
+networks:
+  aemu-net:
+    driver: bridge
+
+volumes:
+  status-data:
